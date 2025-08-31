@@ -40,10 +40,9 @@ export default function HomePage() {
             </a>
           </nav>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm">
-              Sign In
+            <Button size="sm" asChild>
+              <a href="/builder">Get Started</a>
             </Button>
-            <Button size="sm">Get Started</Button>
           </div>
         </div>
       </header>
@@ -63,9 +62,11 @@ export default function HomePage() {
             track which versions lead to interviews.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="text-lg px-8">
-              <RocketIcon className="size-4 mr-2" />
-              Start Building Your Resume
+            <Button size="lg" className="text-lg px-8" asChild>
+              <a href="/builder">
+                <RocketIcon className="size-4 mr-2" />
+                Start Building Your Resume
+              </a>
             </Button>
             <Button variant="outline" size="lg" className="text-lg px-8 bg-transparent">
               View Examples
@@ -370,9 +371,11 @@ export default function HomePage() {
             Join thousands of job seekers who have successfully landed their dream jobs with Resumify AI.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="text-lg px-8">
-              <SparklesIcon className="size-4 mr-2" />
-              Start Building for Free
+            <Button size="lg" className="text-lg px-8" asChild>
+              <a href="/builder">
+                <SparklesIcon className="size-4 mr-2" />
+                Start Building for Free
+              </a>
             </Button>
             <Button variant="outline" size="lg" className="text-lg px-8 bg-transparent">
               View Pro Features
@@ -412,11 +415,6 @@ export default function HomePage() {
                 <li>
                   <a href="#" className="hover:text-primary">
                     Templates
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-primary">
-                    Examples
                   </a>
                 </li>
               </ul>
