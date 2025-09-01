@@ -1,7 +1,13 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   CheckIcon,
   StarIcon,
@@ -14,7 +20,14 @@ import {
   SparklesIcon,
   RocketIcon,
   ZapIcon,
-} from "lucide-react"
+} from "lucide-react";
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  SignOutButton,
+  SignUpButton,
+} from "@clerk/nextjs";
 
 export default function HomePage() {
   return (
@@ -26,23 +39,50 @@ export default function HomePage() {
             <div className="size-8 bg-primary rounded-lg flex items-center justify-center">
               <FileTextIcon className="size-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-foreground">Resumify AI</span>
+            <span className="text-xl font-bold text-foreground">
+              Resumify AI
+            </span>
           </div>
           <nav className="hidden md:flex items-center gap-6">
-            <a href="#features" className="text-muted-foreground hover:text-primary">
+            <a
+              href="#features"
+              className="text-muted-foreground hover:text-primary"
+            >
               Features
             </a>
-            <a href="#pricing" className="text-muted-foreground hover:text-primary">
+            <a
+              href="#pricing"
+              className="text-muted-foreground hover:text-primary"
+            >
               Pricing
             </a>
-            <a href="#testimonials" className="text-muted-foreground hover:text-primary">
+            <a
+              href="#testimonials"
+              className="text-muted-foreground hover:text-primary"
+            >
               Reviews
             </a>
           </nav>
           <div className="flex items-center gap-3">
-            <Button size="sm" asChild>
-              <a href="/builder">Get Started</a>
-            </Button>
+            <SignedIn>
+              <SignOutButton />
+            </SignedIn>
+            <SignedOut>
+              <SignInButton>
+                <Button
+                  size="sm"
+                  variant={"ghost"}
+                  className="hover:cursor-pointer"
+                >
+                  <p>Sign in</p>
+                </Button>
+              </SignInButton>
+              <SignUpButton>
+                <Button size="sm" className="hover:cursor-pointer">
+                  <p>Get Started</p>
+                </Button>
+              </SignUpButton>
+            </SignedOut>
           </div>
         </div>
       </header>
@@ -55,11 +95,13 @@ export default function HomePage() {
             AI-Powered Resume Builder
           </Badge>
           <h1 className="text-4xl md:text-6xl font-bold text-balance mb-6">
-            Build Resumes That Get You <span className="gradient-text">Hired</span>
+            Build Resumes That Get You{" "}
+            <span className="gradient-text">Hired</span>
           </h1>
           <p className="text-xl text-muted-foreground text-balance mb-8 max-w-2xl mx-auto leading-relaxed">
-            Create professional, ATS-optimized resumes with advanced AI tailoring. Get job-specific suggestions and
-            track which versions lead to interviews.
+            Create professional, ATS-optimized resumes with advanced AI
+            tailoring. Get job-specific suggestions and track which versions
+            lead to interviews.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="text-lg px-8" asChild>
@@ -68,7 +110,11 @@ export default function HomePage() {
                 Start Building Your Resume
               </a>
             </Button>
-            <Button variant="outline" size="lg" className="text-lg px-8 bg-transparent">
+            <Button
+              variant="outline"
+              size="lg"
+              className="text-lg px-8 bg-transparent"
+            >
               View Examples
             </Button>
           </div>
@@ -93,10 +139,12 @@ export default function HomePage() {
       <section id="features" className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Powerful Features for Every Job Seeker</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Powerful Features for Every Job Seeker
+            </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              From basic resume creation to advanced AI optimization, we have everything you need to land your dream
-              job.
+              From basic resume creation to advanced AI optimization, we have
+              everything you need to land your dream job.
             </p>
           </div>
 
@@ -106,7 +154,8 @@ export default function HomePage() {
                 <BrainIcon className="size-8 text-primary mb-2" />
                 <CardTitle>AI-Powered Suggestions</CardTitle>
                 <CardDescription>
-                  Get intelligent recommendations for content, phrasing, and formatting tailored to your industry.
+                  Get intelligent recommendations for content, phrasing, and
+                  formatting tailored to your industry.
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -116,7 +165,8 @@ export default function HomePage() {
                 <TargetIcon className="size-8 text-primary mb-2" />
                 <CardTitle>Job-Specific Optimization</CardTitle>
                 <CardDescription>
-                  Advanced AI tailoring with keyword optimization for specific job postings and ATS systems.
+                  Advanced AI tailoring with keyword optimization for specific
+                  job postings and ATS systems.
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -126,7 +176,8 @@ export default function HomePage() {
                 <BarChart3Icon className="size-8 text-primary mb-2" />
                 <CardTitle>Performance Analytics</CardTitle>
                 <CardDescription>
-                  Track which resume versions lead to interviews and optimize your success rate.
+                  Track which resume versions lead to interviews and optimize
+                  your success rate.
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -136,7 +187,8 @@ export default function HomePage() {
                 <ClockIcon className="size-8 text-primary mb-2" />
                 <CardTitle>Version History</CardTitle>
                 <CardDescription>
-                  Keep track of all your resume iterations with unlimited drafts and version control.
+                  Keep track of all your resume iterations with unlimited drafts
+                  and version control.
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -146,7 +198,8 @@ export default function HomePage() {
                 <FileTextIcon className="size-8 text-primary mb-2" />
                 <CardTitle>Professional Templates</CardTitle>
                 <CardDescription>
-                  Choose from industry-specific templates designed to pass ATS screening and impress recruiters.
+                  Choose from industry-specific templates designed to pass ATS
+                  screening and impress recruiters.
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -156,7 +209,8 @@ export default function HomePage() {
                 <TrendingUpIcon className="size-8 text-primary mb-2" />
                 <CardTitle>Application Tracking</CardTitle>
                 <CardDescription>
-                  Monitor your job applications with built-in reminders and follow-up suggestions.
+                  Monitor your job applications with built-in reminders and
+                  follow-up suggestions.
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -168,7 +222,9 @@ export default function HomePage() {
       <section id="pricing" className="py-20 px-4">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Choose Your Plan</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Choose Your Plan
+            </h2>
             <p className="text-xl text-muted-foreground leading-relaxed">
               Start free and upgrade when you need advanced features
             </p>
@@ -186,7 +242,9 @@ export default function HomePage() {
                   <span className="text-4xl font-bold gradient-text">$0</span>
                   <span className="text-muted-foreground">/month</span>
                 </div>
-                <CardDescription>Perfect for getting started with basic resume building</CardDescription>
+                <CardDescription>
+                  Perfect for getting started with basic resume building
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
@@ -234,17 +292,23 @@ export default function HomePage() {
                   <span className="text-4xl font-bold gradient-text">$19</span>
                   <span className="text-muted-foreground">/month</span>
                 </div>
-                <CardDescription>Advanced AI features for serious job seekers</CardDescription>
+                <CardDescription>
+                  Advanced AI features for serious job seekers
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <CheckIcon className="size-4 text-primary" />
-                    <span className="font-medium">Unlimited resumes & cover letters</span>
+                    <span className="font-medium">
+                      Unlimited resumes & cover letters
+                    </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <CheckIcon className="size-4 text-primary" />
-                    <span className="font-medium">Advanced AI tailoring (job-specific suggestions)</span>
+                    <span className="font-medium">
+                      Advanced AI tailoring (job-specific suggestions)
+                    </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <CheckIcon className="size-4 text-primary" />
@@ -252,19 +316,27 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <CheckIcon className="size-4 text-primary" />
-                    <span className="font-medium">Full version history / unlimited drafts</span>
+                    <span className="font-medium">
+                      Full version history / unlimited drafts
+                    </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <CheckIcon className="size-4 text-primary" />
-                    <span className="font-medium">Application tracking + reminders</span>
+                    <span className="font-medium">
+                      Application tracking + reminders
+                    </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <CheckIcon className="size-4 text-primary" />
-                    <span className="font-medium">Priority access to new features</span>
+                    <span className="font-medium">
+                      Priority access to new features
+                    </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <CheckIcon className="size-4 text-primary" />
-                    <span className="font-medium">Analytics: interview success tracking</span>
+                    <span className="font-medium">
+                      Analytics: interview success tracking
+                    </span>
                   </div>
                 </div>
                 <Button className="w-full">Upgrade to Pro</Button>
@@ -278,7 +350,9 @@ export default function HomePage() {
       <section id="testimonials" className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Trusted by Job Seekers Worldwide</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Trusted by Job Seekers Worldwide
+            </h2>
             <p className="text-xl text-muted-foreground leading-relaxed">
               See how Resumify AI has helped thousands land their dream jobs
             </p>
@@ -289,12 +363,15 @@ export default function HomePage() {
               <CardHeader>
                 <div className="flex items-center gap-1 mb-2">
                   {[...Array(5)].map((_, i) => (
-                    <StarIcon key={i} className="size-4 fill-primary text-primary" />
+                    <StarIcon
+                      key={i}
+                      className="size-4 fill-primary text-primary"
+                    />
                   ))}
                 </div>
                 <CardDescription className="leading-relaxed">
-                  "The AI suggestions were spot-on for my industry. I got 3 interviews within a week of updating my
-                  resume!"
+                  "The AI suggestions were spot-on for my industry. I got 3
+                  interviews within a week of updating my resume!"
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -304,7 +381,9 @@ export default function HomePage() {
                   </div>
                   <div>
                     <p className="font-medium">Sarah Johnson</p>
-                    <p className="text-sm text-muted-foreground">Software Engineer</p>
+                    <p className="text-sm text-muted-foreground">
+                      Software Engineer
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -314,12 +393,16 @@ export default function HomePage() {
               <CardHeader>
                 <div className="flex items-center gap-1 mb-2">
                   {[...Array(5)].map((_, i) => (
-                    <StarIcon key={i} className="size-4 fill-primary text-primary" />
+                    <StarIcon
+                      key={i}
+                      className="size-4 fill-primary text-primary"
+                    />
                   ))}
                 </div>
                 <CardDescription className="leading-relaxed">
-                  "The analytics feature helped me understand which resume version worked best. Finally got my dream job
-                  at a Fortune 500 company!"
+                  "The analytics feature helped me understand which resume
+                  version worked best. Finally got my dream job at a Fortune 500
+                  company!"
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -329,7 +412,9 @@ export default function HomePage() {
                   </div>
                   <div>
                     <p className="font-medium">Michael Chen</p>
-                    <p className="text-sm text-muted-foreground">Marketing Manager</p>
+                    <p className="text-sm text-muted-foreground">
+                      Marketing Manager
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -339,12 +424,16 @@ export default function HomePage() {
               <CardHeader>
                 <div className="flex items-center gap-1 mb-2">
                   {[...Array(5)].map((_, i) => (
-                    <StarIcon key={i} className="size-4 fill-primary text-primary" />
+                    <StarIcon
+                      key={i}
+                      className="size-4 fill-primary text-primary"
+                    />
                   ))}
                 </div>
                 <CardDescription className="leading-relaxed">
-                  "As a recent graduate, I had no idea how to write a professional resume. Resumify AI guided me through
-                  every step!"
+                  "As a recent graduate, I had no idea how to write a
+                  professional resume. Resumify AI guided me through every
+                  step!"
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -354,7 +443,9 @@ export default function HomePage() {
                   </div>
                   <div>
                     <p className="font-medium">Emily Rodriguez</p>
-                    <p className="text-sm text-muted-foreground">Recent Graduate</p>
+                    <p className="text-sm text-muted-foreground">
+                      Recent Graduate
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -366,9 +457,12 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-4xl text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Build Your Perfect Resume?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Ready to Build Your Perfect Resume?
+          </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-            Join thousands of job seekers who have successfully landed their dream jobs with Resumify AI.
+            Join thousands of job seekers who have successfully landed their
+            dream jobs with Resumify AI.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="text-lg px-8" asChild>
@@ -377,7 +471,11 @@ export default function HomePage() {
                 Start Building for Free
               </a>
             </Button>
-            <Button variant="outline" size="lg" className="text-lg px-8 bg-transparent">
+            <Button
+              variant="outline"
+              size="lg"
+              className="text-lg px-8 bg-transparent"
+            >
               View Pro Features
             </Button>
           </div>
@@ -396,7 +494,8 @@ export default function HomePage() {
                 <span className="text-xl font-bold">Resumify AI</span>
               </div>
               <p className="text-muted-foreground leading-relaxed">
-                Build professional resumes with AI-powered optimization and land your dream job.
+                Build professional resumes with AI-powered optimization and land
+                your dream job.
               </p>
             </div>
             <div>
@@ -472,7 +571,9 @@ export default function HomePage() {
           </div>
           <Separator className="my-8" />
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-muted-foreground">© 2024 Resumify AI. All rights reserved.</p>
+            <p className="text-muted-foreground">
+              © 2024 Resumify AI. All rights reserved.
+            </p>
             <div className="flex items-center gap-4 text-muted-foreground">
               <a href="#" className="hover:text-primary">
                 Twitter
@@ -488,5 +589,5 @@ export default function HomePage() {
         </div>
       </footer>
     </div>
-  )
+  );
 }
