@@ -1,4 +1,5 @@
 "use client";
+import { PDFTemplate } from "@/components/resume/pdf-template";
 import { ResumeTemplate } from "@/components/resume/template";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
