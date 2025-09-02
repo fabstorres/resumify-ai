@@ -15,7 +15,6 @@ export const onboard = mutation({
     summary: v.string(),
     experience: v.array(
       v.object({
-        id: v.string(),
         title: v.string(),
         company: v.string(),
         location: v.string(),
@@ -26,7 +25,6 @@ export const onboard = mutation({
     ),
     education: v.array(
       v.object({
-        id: v.string(),
         degree: v.string(),
         school: v.string(),
         location: v.string(),
@@ -37,7 +35,6 @@ export const onboard = mutation({
     skills: v.array(v.string()),
     projects: v.array(
       v.object({
-        id: v.string(),
         name: v.string(),
         description: v.string(),
         technologies: v.string(),

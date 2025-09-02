@@ -26,7 +26,6 @@ export default defineSchema({
 
     experience: v.array(
       v.object({
-        id: v.string(),
         title: v.string(),
         company: v.string(),
         location: v.string(),
@@ -38,7 +37,6 @@ export default defineSchema({
 
     education: v.array(
       v.object({
-        id: v.string(),
         degree: v.string(),
         school: v.string(),
         location: v.string(),
@@ -51,7 +49,6 @@ export default defineSchema({
 
     projects: v.array(
       v.object({
-        id: v.string(),
         name: v.string(),
         description: v.string(),
         technologies: v.string(),

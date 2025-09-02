@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,8 +24,9 @@ import {
   FileTextIcon,
   TrashIcon,
 } from "lucide-react";
-import { useConvexAuth } from "convex/react";
+import { useConvexAuth, useMutation } from "convex/react";
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
+import { api } from "@/convex/_generated/api";
 import type {
   PersonalInfo,
   Experience,
@@ -34,8 +36,9 @@ import type {
 
 export default function OnboardingPage() {
   const { isAuthenticated } = useConvexAuth();
+  const onboard = useMutation(api.user.onboard);
+  const router = useRouter();
 
-  // Always call hooks before any conditional returns
   const [currentStep, setCurrentStep] = useState(1);
   const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({
     name: "",
@@ -50,7 +53,6 @@ export default function OnboardingPage() {
 
   const [experiences, setExperiences] = useState<Experience[]>([
     {
-      id: "1",
       title: "",
       company: "",
       location: "",
@@ -62,7 +64,6 @@ export default function OnboardingPage() {
 
   const [education, setEducation] = useState<Education[]>([
     {
-      id: "1",
       degree: "",
       school: "",
       location: "",
@@ -73,7 +74,6 @@ export default function OnboardingPage() {
 
   const [projects, setProjects] = useState<Project[]>([
     {
-      id: "1",
       name: "",
       description: "",
       technologies: "",
@@ -84,7 +84,6 @@ export default function OnboardingPage() {
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState("");
 
-  // Now handle the conditional rendering after all hooks
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col items-center justify-center h-screen space-y-4">
@@ -102,11 +101,11 @@ export default function OnboardingPage() {
     );
   }
 
+  // --- CRUD helpers (same as before) ---
   const addExperience = () => {
     setExperiences([
       ...experiences,
       {
-        id: Date.now().toString(),
         title: "",
         company: "",
         location: "",
@@ -116,28 +115,23 @@ export default function OnboardingPage() {
       },
     ]);
   };
-
-  const removeExperience = (id: string) => {
-    setExperiences(experiences.filter((exp) => exp.id !== id));
-  };
-
+  const removeExperience = (index: number) =>
+    setExperiences(experiences.filter((_, i) => i !== index));
   const updateExperience = (
-    id: string,
+    index: number,
     field: keyof Experience,
     value: string
-  ) => {
+  ) =>
     setExperiences(
-      experiences.map((exp) =>
-        exp.id === id ? { ...exp, [field]: value } : exp
+      experiences.map((exp, i) =>
+        i === index ? { ...exp, [field]: value } : exp
       )
     );
-  };
 
   const addEducation = () => {
     setEducation([
       ...education,
       {
-        id: Date.now().toString(),
         degree: "",
         school: "",
         location: "",
@@ -146,26 +140,23 @@ export default function OnboardingPage() {
       },
     ]);
   };
-
-  const removeEducation = (id: string) => {
-    setEducation(education.filter((edu) => edu.id !== id));
-  };
-
+  const removeEducation = (index: number) =>
+    setEducation(education.filter((_, i) => i !== index));
   const updateEducation = (
-    id: string,
+    index: number,
     field: keyof Education,
     value: string
-  ) => {
+  ) =>
     setEducation(
-      education.map((edu) => (edu.id === id ? { ...edu, [field]: value } : edu))
+      education.map((edu, i) =>
+        i === index ? { ...edu, [field]: value } : edu
+      )
     );
-  };
 
   const addProject = () => {
     setProjects([
       ...projects,
       {
-        id: Date.now().toString(),
         name: "",
         description: "",
         technologies: "",
@@ -173,18 +164,14 @@ export default function OnboardingPage() {
       },
     ]);
   };
-
-  const removeProject = (id: string) => {
-    setProjects(projects.filter((proj) => proj.id !== id));
-  };
-
-  const updateProject = (id: string, field: keyof Project, value: string) => {
+  const removeProject = (index: number) =>
+    setProjects(projects.filter((_, i) => i !== index));
+  const updateProject = (index: number, field: keyof Project, value: string) =>
     setProjects(
-      projects.map((proj) =>
-        proj.id === id ? { ...proj, [field]: value } : proj
+      projects.map((proj, i) =>
+        i === index ? { ...proj, [field]: value } : proj
       )
     );
-  };
 
   const addSkill = () => {
     if (newSkill.trim() && !skills.includes(newSkill.trim())) {
@@ -192,26 +179,94 @@ export default function OnboardingPage() {
       setNewSkill("");
     }
   };
-
-  const removeSkill = (skill: string) => {
+  const removeSkill = (skill: string) =>
     setSkills(skills.filter((s) => s !== skill));
+
+  // --- Validation per step ---
+  const isStepValid = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          personalInfo.name.trim() !== "" && personalInfo.email.trim() !== ""
+        );
+      case 2:
+        return experiences.every(
+          (exp) => exp.company.trim() !== "" && exp.title.trim() !== ""
+        );
+      case 3:
+        return education.every(
+          (edu) => edu.school.trim() !== "" && edu.degree.trim() !== ""
+        );
+      case 4:
+        return projects.every((proj) => proj.name.trim() !== "");
+      default:
+        return true;
+    }
   };
 
-  const handleFinish = () => {
-    const profileData = {
-      personalInfo,
-      summary,
-      experience: experiences,
-      education,
-      projects,
-      skills,
-    };
-    localStorage.setItem("resumify-profile", JSON.stringify(profileData));
-    window.location.href = "/builder";
+  // --- Final submit ---
+  const handleFinish = async () => {
+    try {
+      await onboard({
+        personalInfo: {
+          ...personalInfo,
+          phone: personalInfo.phone || "",
+          location: personalInfo.location || "",
+          linkedin: personalInfo.linkedin || "",
+          github: personalInfo.github || "",
+        },
+        summary: summary || "",
+        experience: experiences.map((exp) => ({
+          ...exp,
+          location: exp.location || "",
+          startDate: exp.startDate || "",
+          endDate: exp.endDate || "",
+          description: exp.description || "",
+        })),
+        education: education.map((edu) => ({
+          ...edu,
+          location: edu.location || "",
+          graduationDate: edu.graduationDate || "",
+          gpa: edu.gpa || "",
+        })),
+        projects: projects.map((proj) => ({
+          ...proj,
+          description: proj.description || "",
+          technologies: proj.technologies || "",
+          link: proj.link || "",
+        })),
+        skills,
+      });
+      router.push("/builder");
+    } catch (error) {
+      console.error("Onboarding failed:", error);
+      // TODO: add toast here
+    }
   };
 
-  const handleSkip = () => {
-    window.location.href = "/builder";
+  // --- Skip (empty resume) ---
+  const handleSkip = async () => {
+    try {
+      await onboard({
+        personalInfo: {
+          name: "",
+          email: "",
+          phone: "",
+          location: "",
+          linkedin: "",
+          github: "",
+        },
+        summary: "",
+        experience: [],
+        education: [],
+        projects: [],
+        skills: [],
+      });
+      router.push("/builder");
+    } catch (error) {
+      console.error("Skip onboarding failed:", error);
+      // TODO: add toast here
+    }
   };
 
   const steps = [
@@ -224,7 +279,7 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+      <header className="border-b bg-background/95 backdrop-blur sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="size-8 bg-primary rounded-lg flex items-center justify-center">
@@ -234,44 +289,32 @@ export default function OnboardingPage() {
               Resumify AI
             </span>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2">
-              {steps.map((step, index) => (
-                <div key={step.number} className="flex items-center">
-                  <div
-                    className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
-                      currentStep === step.number
-                        ? "bg-primary text-primary-foreground"
-                        : currentStep > step.number
-                        ? "bg-primary/20 text-primary"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    <step.icon className="size-4" />
-                    <span>{step.title}</span>
-                  </div>
-                  {index < steps.length - 1 && (
-                    <ArrowRightIcon className="size-4 text-muted-foreground mx-2" />
-                  )}
+          <div className="hidden md:flex items-center gap-2">
+            {steps.map((step, index) => (
+              <div key={step.number} className="flex items-center">
+                <div
+                  className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
+                    currentStep === step.number
+                      ? "bg-primary text-primary-foreground"
+                      : currentStep > step.number
+                      ? "bg-primary/20 text-primary"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  <step.icon className="size-4" />
+                  <span>{step.title}</span>
                 </div>
-              ))}
-            </div>
+                {index < steps.length - 1 && (
+                  <ArrowRightIcon className="size-4 text-muted-foreground mx-2" />
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </header>
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {currentStep === 1 && (
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2">Welcome to Resumify AI!</h1>
-            <p className="text-muted-foreground mb-4">
-              Let's set up your profile to make resume building faster and more
-              personalized.
-            </p>
-          </div>
-        )}
-
-        {/* Step 1: Personal Information */}
+        {/* Step 1: Personal Info */}
         {currentStep === 1 && (
           <Card>
             <CardHeader>
@@ -280,30 +323,24 @@ export default function OnboardingPage() {
                 Personal Information
               </CardTitle>
               <CardDescription>
-                Let's start with your basic information. This will be used
-                across all your resumes.
+                Let's start with your basic information.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name *</Label>
+                  <Label>Full Name *</Label>
                   <Input
-                    id="name"
                     value={personalInfo.name}
                     onChange={(e) =>
-                      setPersonalInfo({
-                        ...personalInfo,
-                        name: e.target.value,
-                      })
+                      setPersonalInfo({ ...personalInfo, name: e.target.value })
                     }
                     placeholder="John Doe"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
+                  <Label>Email *</Label>
                   <Input
-                    id="email"
                     type="email"
                     value={personalInfo.email}
                     onChange={(e) =>
@@ -316,9 +353,8 @@ export default function OnboardingPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label>Phone</Label>
                   <Input
-                    id="phone"
                     value={personalInfo.phone}
                     onChange={(e) =>
                       setPersonalInfo({
@@ -330,9 +366,8 @@ export default function OnboardingPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
+                  <Label>Location</Label>
                   <Input
-                    id="location"
                     value={personalInfo.location}
                     onChange={(e) =>
                       setPersonalInfo({
@@ -344,9 +379,8 @@ export default function OnboardingPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="linkedin">LinkedIn</Label>
+                  <Label>LinkedIn</Label>
                   <Input
-                    id="linkedin"
                     value={personalInfo.linkedin}
                     onChange={(e) =>
                       setPersonalInfo({
@@ -358,9 +392,8 @@ export default function OnboardingPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="github">GitHub</Label>
+                  <Label>GitHub</Label>
                   <Input
-                    id="github"
                     value={personalInfo.github}
                     onChange={(e) =>
                       setPersonalInfo({
@@ -373,9 +406,8 @@ export default function OnboardingPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="summary">Professional Summary</Label>
+                <Label>Professional Summary</Label>
                 <Textarea
-                  id="summary"
                   value={summary}
                   onChange={(e) => setSummary(e.target.value)}
                   placeholder="Brief overview of your professional background and career goals..."
@@ -400,14 +432,14 @@ export default function OnboardingPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {experiences.map((exp, index) => (
-                <div key={exp.id} className="border rounded-lg p-4 space-y-4">
+                <div key={index} className="border rounded-lg p-4 space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium">Experience {index + 1}</h3>
                     {experiences.length > 1 && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => removeExperience(exp.id)}
+                        onClick={() => removeExperience(index)}
                       >
                         <TrashIcon className="size-4" />
                       </Button>
@@ -419,9 +451,9 @@ export default function OnboardingPage() {
                       <Input
                         value={exp.company}
                         onChange={(e) =>
-                          updateExperience(exp.id, "company", e.target.value)
+                          updateExperience(index, "company", e.target.value)
                         }
-                        placeholder="Company Name"
+                        placeholder="Google"
                       />
                     </div>
                     <div className="space-y-2">
@@ -429,7 +461,7 @@ export default function OnboardingPage() {
                       <Input
                         value={exp.title}
                         onChange={(e) =>
-                          updateExperience(exp.id, "title", e.target.value)
+                          updateExperience(index, "title", e.target.value)
                         }
                         placeholder="Software Engineer"
                       />
@@ -439,9 +471,9 @@ export default function OnboardingPage() {
                       <Input
                         value={exp.location}
                         onChange={(e) =>
-                          updateExperience(exp.id, "location", e.target.value)
+                          updateExperience(index, "location", e.target.value)
                         }
-                        placeholder="San Francisco, CA"
+                        placeholder="Mountain View, CA"
                       />
                     </div>
                     <div className="space-y-2">
@@ -450,7 +482,7 @@ export default function OnboardingPage() {
                         type="month"
                         value={exp.startDate}
                         onChange={(e) =>
-                          updateExperience(exp.id, "startDate", e.target.value)
+                          updateExperience(index, "startDate", e.target.value)
                         }
                       />
                     </div>
@@ -460,7 +492,7 @@ export default function OnboardingPage() {
                         type="month"
                         value={exp.endDate}
                         onChange={(e) =>
-                          updateExperience(exp.id, "endDate", e.target.value)
+                          updateExperience(index, "endDate", e.target.value)
                         }
                         placeholder="Leave blank if current"
                       />
@@ -471,7 +503,7 @@ export default function OnboardingPage() {
                     <Textarea
                       value={exp.description}
                       onChange={(e) =>
-                        updateExperience(exp.id, "description", e.target.value)
+                        updateExperience(index, "description", e.target.value)
                       }
                       placeholder="Describe your responsibilities and achievements..."
                       rows={3}
@@ -482,7 +514,7 @@ export default function OnboardingPage() {
               <Button
                 variant="outline"
                 onClick={addExperience}
-                className="w-full bg-transparent"
+                className="w-full"
               >
                 <PlusIcon className="size-4 mr-2" />
                 Add Another Experience
@@ -505,14 +537,14 @@ export default function OnboardingPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {education.map((edu, index) => (
-                <div key={edu.id} className="border rounded-lg p-4 space-y-4">
+                <div key={index} className="border rounded-lg p-4 space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium">Education {index + 1}</h3>
                     {education.length > 1 && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => removeEducation(edu.id)}
+                        onClick={() => removeEducation(index)}
                       >
                         <TrashIcon className="size-4" />
                       </Button>
@@ -520,13 +552,13 @@ export default function OnboardingPage() {
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>School/University *</Label>
+                      <Label>School *</Label>
                       <Input
                         value={edu.school}
                         onChange={(e) =>
-                          updateEducation(edu.id, "school", e.target.value)
+                          updateEducation(index, "school", e.target.value)
                         }
-                        placeholder="University Name"
+                        placeholder="Harvard University"
                       />
                     </div>
                     <div className="space-y-2">
@@ -534,7 +566,7 @@ export default function OnboardingPage() {
                       <Input
                         value={edu.degree}
                         onChange={(e) =>
-                          updateEducation(edu.id, "degree", e.target.value)
+                          updateEducation(index, "degree", e.target.value)
                         }
                         placeholder="Bachelor's in Computer Science"
                       />
@@ -544,9 +576,9 @@ export default function OnboardingPage() {
                       <Input
                         value={edu.location}
                         onChange={(e) =>
-                          updateEducation(edu.id, "location", e.target.value)
+                          updateEducation(index, "location", e.target.value)
                         }
-                        placeholder="Boston, MA"
+                        placeholder="Cambridge, MA"
                       />
                     </div>
                     <div className="space-y-2">
@@ -556,7 +588,7 @@ export default function OnboardingPage() {
                         value={edu.graduationDate}
                         onChange={(e) =>
                           updateEducation(
-                            edu.id,
+                            index,
                             "graduationDate",
                             e.target.value
                           )
@@ -569,7 +601,7 @@ export default function OnboardingPage() {
                     <Input
                       value={edu.gpa || ""}
                       onChange={(e) =>
-                        updateEducation(edu.id, "gpa", e.target.value)
+                        updateEducation(index, "gpa", e.target.value)
                       }
                       placeholder="3.8/4.0"
                     />
@@ -579,7 +611,7 @@ export default function OnboardingPage() {
               <Button
                 variant="outline"
                 onClick={addEducation}
-                className="w-full bg-transparent"
+                className="w-full"
               >
                 <PlusIcon className="size-4 mr-2" />
                 Add Another Education
@@ -603,18 +635,15 @@ export default function OnboardingPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {projects.map((project, index) => (
-                  <div
-                    key={project.id}
-                    className="border rounded-lg p-4 space-y-4"
-                  >
+                {projects.map((proj, index) => (
+                  <div key={index} className="border rounded-lg p-4 space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="font-medium">Project {index + 1}</h3>
                       {projects.length > 1 && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => removeProject(project.id)}
+                          onClick={() => removeProject(index)}
                         >
                           <TrashIcon className="size-4" />
                         </Button>
@@ -624,9 +653,9 @@ export default function OnboardingPage() {
                       <div className="space-y-2">
                         <Label>Project Name *</Label>
                         <Input
-                          value={project.name}
+                          value={proj.name}
                           onChange={(e) =>
-                            updateProject(project.id, "name", e.target.value)
+                            updateProject(index, "name", e.target.value)
                           }
                           placeholder="My Awesome Project"
                         />
@@ -634,13 +663,9 @@ export default function OnboardingPage() {
                       <div className="space-y-2">
                         <Label>Technologies</Label>
                         <Input
-                          value={project.technologies}
+                          value={proj.technologies}
                           onChange={(e) =>
-                            updateProject(
-                              project.id,
-                              "technologies",
-                              e.target.value
-                            )
+                            updateProject(index, "technologies", e.target.value)
                           }
                           placeholder="React, Node.js, MongoDB"
                         />
@@ -648,24 +673,20 @@ export default function OnboardingPage() {
                       <div className="space-y-2 md:col-span-2">
                         <Label>Project Link</Label>
                         <Input
-                          value={project.link || ""}
+                          value={proj.link || ""}
                           onChange={(e) =>
-                            updateProject(project.id, "link", e.target.value)
+                            updateProject(index, "link", e.target.value)
                           }
-                          placeholder="https://myproject.com or https://github.com/username/project"
+                          placeholder="https://github.com/username/project"
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label>Description</Label>
                       <Textarea
-                        value={project.description}
+                        value={proj.description}
                         onChange={(e) =>
-                          updateProject(
-                            project.id,
-                            "description",
-                            e.target.value
-                          )
+                          updateProject(index, "description", e.target.value)
                         }
                         placeholder="Describe what this project does and your role in building it..."
                         rows={3}
@@ -676,7 +697,7 @@ export default function OnboardingPage() {
                 <Button
                   variant="outline"
                   onClick={addProject}
-                  className="w-full bg-transparent"
+                  className="w-full"
                 >
                   <PlusIcon className="size-4 mr-2" />
                   Add Another Project
@@ -745,12 +766,17 @@ export default function OnboardingPage() {
           {currentStep < 4 ? (
             <Button
               onClick={() => setCurrentStep(Math.min(4, currentStep + 1))}
+              disabled={!isStepValid()}
             >
               Next
               <ArrowRightIcon className="size-4 ml-2" />
             </Button>
           ) : (
-            <Button onClick={handleFinish} className="bg-primary">
+            <Button
+              onClick={handleFinish}
+              className="bg-primary"
+              disabled={!isStepValid()}
+            >
               Complete Setup
               <ArrowRightIcon className="size-4 ml-2" />
             </Button>

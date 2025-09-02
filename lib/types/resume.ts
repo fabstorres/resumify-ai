@@ -9,7 +9,6 @@ export type PersonalInfo = {
 };
 
 export type Experience = {
-  id: string;
   title: string;
   company: string;
   location: string;
@@ -19,7 +18,6 @@ export type Experience = {
 };
 
 export type Education = {
-  id: string;
   degree: string;
   school: string;
   location: string;
@@ -28,7 +26,6 @@ export type Education = {
 };
 
 export type Project = {
-  id: string;
   name: string;
   description: string;
   technologies: string;
@@ -36,6 +33,7 @@ export type Project = {
 };
 
 export type ResumeData = {
+  _id: string; // Convex will provide this
   personalInfo: PersonalInfo;
   summary: string;
   experience: Experience[];
