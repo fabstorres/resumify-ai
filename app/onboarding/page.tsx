@@ -24,40 +24,67 @@ import {
   TrashIcon,
 } from "lucide-react";
 import { useConvexAuth } from "convex/react";
-import { useRouter } from "next/router";
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
-
-interface Experience {
-  id: string;
-  company: string;
-  position: string;
-  startDate: string;
-  endDate: string;
-  description: string;
-  current: boolean;
-}
-
-interface Education {
-  id: string;
-  school: string;
-  degree: string;
-  field: string;
-  graduationDate: string;
-  gpa?: string;
-}
-
-interface Project {
-  id: string;
-  name: string;
-  description: string;
-  technologies: string[];
-  url?: string;
-  github?: string;
-}
+import type {
+  PersonalInfo,
+  Experience,
+  Education,
+  Project,
+} from "@/lib/types/resume";
 
 export default function OnboardingPage() {
   const { isAuthenticated } = useConvexAuth();
 
+  // Always call hooks before any conditional returns
+  const [currentStep, setCurrentStep] = useState(1);
+  const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({
+    name: "",
+    email: "",
+    phone: "",
+    location: "",
+    linkedin: "",
+    github: "",
+  });
+
+  const [summary, setSummary] = useState("");
+
+  const [experiences, setExperiences] = useState<Experience[]>([
+    {
+      id: "1",
+      title: "",
+      company: "",
+      location: "",
+      startDate: "",
+      endDate: "",
+      description: "",
+    },
+  ]);
+
+  const [education, setEducation] = useState<Education[]>([
+    {
+      id: "1",
+      degree: "",
+      school: "",
+      location: "",
+      graduationDate: "",
+      gpa: "",
+    },
+  ]);
+
+  const [projects, setProjects] = useState<Project[]>([
+    {
+      id: "1",
+      name: "",
+      description: "",
+      technologies: "",
+      link: "",
+    },
+  ]);
+
+  const [skills, setSkills] = useState<string[]>([]);
+  const [newSkill, setNewSkill] = useState("");
+
+  // Now handle the conditional rendering after all hooks
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col items-center justify-center h-screen space-y-4">
@@ -75,66 +102,17 @@ export default function OnboardingPage() {
     );
   }
 
-  const [currentStep, setCurrentStep] = useState(1);
-  const [personalInfo, setPersonalInfo] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    location: "",
-    linkedIn: "",
-    github: "",
-    portfolio: "",
-    summary: "",
-  });
-
-  const [experiences, setExperiences] = useState<Experience[]>([
-    {
-      id: "1",
-      company: "",
-      position: "",
-      startDate: "",
-      endDate: "",
-      description: "",
-      current: false,
-    },
-  ]);
-
-  const [education, setEducation] = useState<Education[]>([
-    {
-      id: "1",
-      school: "",
-      degree: "",
-      field: "",
-      graduationDate: "",
-      gpa: "",
-    },
-  ]);
-
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: "1",
-      name: "",
-      description: "",
-      technologies: [],
-      url: "",
-      github: "",
-    },
-  ]);
-
-  const [skills, setSkills] = useState<string[]>([]);
-  const [newSkill, setNewSkill] = useState("");
-
   const addExperience = () => {
     setExperiences([
       ...experiences,
       {
         id: Date.now().toString(),
+        title: "",
         company: "",
-        position: "",
+        location: "",
         startDate: "",
         endDate: "",
         description: "",
-        current: false,
       },
     ]);
   };
@@ -146,7 +124,7 @@ export default function OnboardingPage() {
   const updateExperience = (
     id: string,
     field: keyof Experience,
-    value: any
+    value: string
   ) => {
     setExperiences(
       experiences.map((exp) =>
@@ -160,9 +138,9 @@ export default function OnboardingPage() {
       ...education,
       {
         id: Date.now().toString(),
-        school: "",
         degree: "",
-        field: "",
+        school: "",
+        location: "",
         graduationDate: "",
         gpa: "",
       },
@@ -190,9 +168,8 @@ export default function OnboardingPage() {
         id: Date.now().toString(),
         name: "",
         description: "",
-        technologies: [],
-        url: "",
-        github: "",
+        technologies: "",
+        link: "",
       },
     ]);
   };
@@ -201,7 +178,7 @@ export default function OnboardingPage() {
     setProjects(projects.filter((proj) => proj.id !== id));
   };
 
-  const updateProject = (id: string, field: keyof Project, value: any) => {
+  const updateProject = (id: string, field: keyof Project, value: string) => {
     setProjects(
       projects.map((proj) =>
         proj.id === id ? { ...proj, [field]: value } : proj
@@ -221,16 +198,15 @@ export default function OnboardingPage() {
   };
 
   const handleFinish = () => {
-    // Save data to localStorage or send to API
     const profileData = {
       personalInfo,
-      experiences,
+      summary,
+      experience: experiences,
       education,
       projects,
       skills,
     };
     localStorage.setItem("resumify-profile", JSON.stringify(profileData));
-    // Redirect to builder
     window.location.href = "/builder";
   };
 
@@ -311,14 +287,14 @@ export default function OnboardingPage() {
             <CardContent className="space-y-6">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name *</Label>
+                  <Label htmlFor="name">Full Name *</Label>
                   <Input
-                    id="fullName"
-                    value={personalInfo.fullName}
+                    id="name"
+                    value={personalInfo.name}
                     onChange={(e) =>
                       setPersonalInfo({
                         ...personalInfo,
-                        fullName: e.target.value,
+                        name: e.target.value,
                       })
                     }
                     placeholder="John Doe"
@@ -368,14 +344,14 @@ export default function OnboardingPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="linkedIn">LinkedIn</Label>
+                  <Label htmlFor="linkedin">LinkedIn</Label>
                   <Input
-                    id="linkedIn"
-                    value={personalInfo.linkedIn}
+                    id="linkedin"
+                    value={personalInfo.linkedin}
                     onChange={(e) =>
                       setPersonalInfo({
                         ...personalInfo,
-                        linkedIn: e.target.value,
+                        linkedin: e.target.value,
                       })
                     }
                     placeholder="linkedin.com/in/johndoe"
@@ -397,30 +373,11 @@ export default function OnboardingPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="portfolio">Portfolio Website</Label>
-                <Input
-                  id="portfolio"
-                  value={personalInfo.portfolio}
-                  onChange={(e) =>
-                    setPersonalInfo({
-                      ...personalInfo,
-                      portfolio: e.target.value,
-                    })
-                  }
-                  placeholder="johndoe.dev"
-                />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="summary">Professional Summary</Label>
                 <Textarea
                   id="summary"
-                  value={personalInfo.summary}
-                  onChange={(e) =>
-                    setPersonalInfo({
-                      ...personalInfo,
-                      summary: e.target.value,
-                    })
-                  }
+                  value={summary}
+                  onChange={(e) => setSummary(e.target.value)}
                   placeholder="Brief overview of your professional background and career goals..."
                   rows={4}
                 />
@@ -468,13 +425,23 @@ export default function OnboardingPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Position *</Label>
+                      <Label>Job Title *</Label>
                       <Input
-                        value={exp.position}
+                        value={exp.title}
                         onChange={(e) =>
-                          updateExperience(exp.id, "position", e.target.value)
+                          updateExperience(exp.id, "title", e.target.value)
                         }
-                        placeholder="Job Title"
+                        placeholder="Software Engineer"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Location</Label>
+                      <Input
+                        value={exp.location}
+                        onChange={(e) =>
+                          updateExperience(exp.id, "location", e.target.value)
+                        }
+                        placeholder="San Francisco, CA"
                       />
                     </div>
                     <div className="space-y-2">
@@ -495,28 +462,8 @@ export default function OnboardingPage() {
                         onChange={(e) =>
                           updateExperience(exp.id, "endDate", e.target.value)
                         }
-                        disabled={exp.current}
+                        placeholder="Leave blank if current"
                       />
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id={`current-${exp.id}`}
-                          checked={exp.current}
-                          onChange={(e) =>
-                            updateExperience(
-                              exp.id,
-                              "current",
-                              e.target.checked
-                            )
-                          }
-                        />
-                        <Label
-                          htmlFor={`current-${exp.id}`}
-                          className="text-sm"
-                        >
-                          Currently working here
-                        </Label>
-                      </div>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -589,17 +536,17 @@ export default function OnboardingPage() {
                         onChange={(e) =>
                           updateEducation(edu.id, "degree", e.target.value)
                         }
-                        placeholder="Bachelor's, Master's, etc."
+                        placeholder="Bachelor's in Computer Science"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Field of Study</Label>
+                      <Label>Location</Label>
                       <Input
-                        value={edu.field}
+                        value={edu.location}
                         onChange={(e) =>
-                          updateEducation(edu.id, "field", e.target.value)
+                          updateEducation(edu.id, "location", e.target.value)
                         }
-                        placeholder="Computer Science, Business, etc."
+                        placeholder="Boston, MA"
                       />
                     </div>
                     <div className="space-y-2">
@@ -687,35 +634,25 @@ export default function OnboardingPage() {
                       <div className="space-y-2">
                         <Label>Technologies</Label>
                         <Input
-                          value={project.technologies.join(", ")}
+                          value={project.technologies}
                           onChange={(e) =>
                             updateProject(
                               project.id,
                               "technologies",
-                              e.target.value.split(",").map((t) => t.trim())
+                              e.target.value
                             )
                           }
                           placeholder="React, Node.js, MongoDB"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label>Live URL</Label>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label>Project Link</Label>
                         <Input
-                          value={project.url || ""}
+                          value={project.link || ""}
                           onChange={(e) =>
-                            updateProject(project.id, "url", e.target.value)
+                            updateProject(project.id, "link", e.target.value)
                           }
-                          placeholder="https://myproject.com"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>GitHub URL</Label>
-                        <Input
-                          value={project.github || ""}
-                          onChange={(e) =>
-                            updateProject(project.id, "github", e.target.value)
-                          }
-                          placeholder="https://github.com/username/project"
+                          placeholder="https://myproject.com or https://github.com/username/project"
                         />
                       </div>
                     </div>
