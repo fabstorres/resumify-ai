@@ -34,6 +34,7 @@ export type Project = {
 
 export type ResumeData = {
   _id: string; // Convex will provide this
+  title: string;
   personalInfo: PersonalInfo;
   summary: string;
   experience: Experience[];

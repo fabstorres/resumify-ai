@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Education, Experience, Project, ResumeData } from "@/lib/types/resume";
+import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { Label } from "@radix-ui/react-label";
-import { useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import {
   FileTextIcon,
   DownloadIcon,
@@ -24,9 +25,11 @@ import {
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useDebouncedCallback } from "use-debounce";
 
 const defaultResumeData: ResumeData = {
   _id: "temp",
+  title: "temp",
   personalInfo: {
     name: "Jane Doe",
     email: "jane.doe@example.com",
@@ -69,20 +72,63 @@ const defaultResumeData: ResumeData = {
 };
 
 export default function ResumeBuilderPage() {
+  const { isAuthenticated, isLoading } = useConvexAuth();
   const { resumeId } = useParams<{ resumeId: string }>();
-  const [resumeData, setResumeData] = useState<ResumeData>(defaultResumeData);
+
+  const updateResume = useMutation(api.resumes.updateResume);
   const messageResult = useQuery(api.resumes.getResume, {
     resumeId: resumeId as Id<"resumes">,
   });
+  const [resumeData, setResumeData] = useState<ResumeData>(defaultResumeData);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+
+  // Debounced save function
+  const debouncedSave = useDebouncedCallback(
+    (data: ResumeData) => {
+      // Don't save if data hasn't loaded from the server yet
+      if (!isDataLoaded) return;
+
+      // Don't save if the data is still the default data
+      if (JSON.stringify(data) === JSON.stringify(defaultResumeData)) return;
+
+      // Don't save if _id is still "temp"
+      if (data._id === "temp") return;
+
+      console.log("Saving resume:", data);
+
+      updateResume({
+        resumeId: resumeId as Id<"resumes">,
+        data: {
+          title: data.title,
+          summary: data.summary,
+          skills: data.skills,
+          personalInfo: data.personalInfo,
+          projects: data.projects,
+          experience: data.experience,
+          education: data.education.map((edu) => ({
+            ...edu,
+            gpa: edu.gpa ?? "",
+          })),
+        },
+      });
+    },
+    1000 // 1 second delay
+  );
+
   useEffect(() => {
     if (messageResult && messageResult.ok) {
       setResumeData(messageResult.value);
+      setIsDataLoaded(true);
     }
   }, [messageResult]);
 
-  if (messageResult === undefined) {
-    return <div>Loading...</div>;
-  }
+  // Auto-save when resumeData changes
+  useEffect(() => {
+    if (isDataLoaded) {
+      debouncedSave(resumeData);
+    }
+  }, [resumeData, debouncedSave, isDataLoaded]);
+
   const addExperience = () => {
     const newExp = {
       title: "",
@@ -200,6 +246,31 @@ export default function ResumeBuilderPage() {
     }));
   };
 
+  if (messageResult === undefined) {
+    return <div>Loading...</div>;
+  }
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen space-y-4">
+        <h1 className="text-xl font-bold">Welcome!</h1>
+        <p>Please sign in or sign up to continue.</p>
+        <div className="flex space-x-4">
+          <SignInButton mode="modal">
+            <Button variant={"ghost"}>Sign In</Button>
+          </SignInButton>
+          <SignUpButton mode="modal">
+            <Button variant={"default"}>Sign Up</Button>
+          </SignUpButton>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
@@ -232,6 +303,20 @@ export default function ResumeBuilderPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              <div className="mb-6">
+                <Label htmlFor="resume-title">Resume Name</Label>
+                <Input
+                  id="resume-title"
+                  value={resumeData.title}
+                  onChange={(e) =>
+                    setResumeData((prev) => ({
+                      ...prev,
+                      title: e.target.value,
+                    }))
+                  }
+                  placeholder="Enter resume name"
+                />
+              </div>
               <Tabs defaultValue="personal" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
                   <TabsTrigger value="personal">Personal</TabsTrigger>
@@ -393,7 +478,72 @@ export default function ResumeBuilderPage() {
                               }
                             />
                           </div>
-                          {/* ... repeat for other fields */}
+                          <div>
+                            <Label>Company</Label>
+                            <Input
+                              value={exp.company}
+                              onChange={(e) =>
+                                updateExperience(
+                                  index,
+                                  "company",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label>Location</Label>
+                            <Input
+                              value={exp.location}
+                              onChange={(e) =>
+                                updateExperience(
+                                  index,
+                                  "location",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label>Start Date</Label>
+                            <Input
+                              value={exp.startDate}
+                              onChange={(e) =>
+                                updateExperience(
+                                  index,
+                                  "startDate",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <Label>End Date</Label>
+                            <Input
+                              value={exp.endDate}
+                              onChange={(e) =>
+                                updateExperience(
+                                  index,
+                                  "endDate",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Description</Label>
+                          <Textarea
+                            value={exp.description}
+                            onChange={(e) =>
+                              updateExperience(
+                                index,
+                                "description",
+                                e.target.value
+                              )
+                            }
+                            rows={3}
+                          />
                         </div>
                       </CardContent>
                     </Card>

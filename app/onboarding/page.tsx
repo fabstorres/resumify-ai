@@ -216,6 +216,7 @@ export default function OnboardingPage() {
           github: personalInfo.github || "",
         },
         summary: summary || "",
+        title: "Master Resume", // <-- Add this (make sure you have a `title` state/variable)
         experience: experiences.map((exp) => ({
           ...exp,
           location: exp.location || "",
@@ -257,6 +258,7 @@ export default function OnboardingPage() {
           github: "",
         },
         summary: "",
+        title: "Master Resume", // <-- required field
         experience: [],
         education: [],
         projects: [],

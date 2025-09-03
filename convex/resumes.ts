@@ -143,6 +143,35 @@ export const createResume = mutation({
   },
 });
 
+export const updateResume = mutation({
+  args: {
+    resumeId: v.id("resumes"),
+    data: v.object(resumeArgsValidator),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return err(AppError.Unauthenicated);
+
+    const resume = await ctx.db.get(args.resumeId);
+    if (!resume) return err(AppError.NotFound);
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!user) return err(AppError.Unauthenicated);
+
+    if (resume.userId !== user._id) return err(AppError.Unauthorized);
+
+    await ctx.db.patch(args.resumeId, {
+      ...args.data,
+      updatedAt: Date.now(),
+    });
+
+    return ok({});
+  },
+});
+
 export const updateExperience = mutation({
   args: {
     resumeId: v.id("resumes"),
