@@ -20,8 +20,8 @@ export function ResumeTemplate({ resume }: { resume: ResumeData }) {
       {resume.experience.length > 0 && (
         <section className="mt-6">
           <h2 className="text-lg font-semibold">Experience</h2>
-          {resume.experience.map((exp) => (
-            <div key={exp.id} className="mt-2">
+          {resume.experience.map((exp, idx) => (
+            <div key={idx} className="mt-2">
               <h3 className="font-medium">{exp.title}</h3>
               <p className="text-gray-600">
                 {exp.company} • {exp.location} • {exp.startDate} – {exp.endDate}
@@ -35,8 +35,8 @@ export function ResumeTemplate({ resume }: { resume: ResumeData }) {
       {resume.education.length > 0 && (
         <section className="mt-6">
           <h2 className="text-lg font-semibold">Education</h2>
-          {resume.education.map((edu) => (
-            <div key={edu.id} className="mt-2">
+          {resume.education.map((edu, idx) => (
+            <div key={idx} className="mt-2">
               <h3 className="font-medium">{edu.degree}</h3>
               <p className="text-gray-600">
                 {edu.school} • {edu.location} • {edu.graduationDate}
@@ -57,14 +57,15 @@ export function ResumeTemplate({ resume }: { resume: ResumeData }) {
       {resume.projects.length > 0 && (
         <section className="mt-6">
           <h2 className="text-lg font-semibold">Projects</h2>
-          {resume.projects.map((proj) => (
-            <div key={proj.id} className="mt-2">
+          {resume.projects.map((proj, idx) => (
+            <div key={idx} className="mt-2">
               <h3 className="font-medium">{proj.name}</h3>
               {proj.link && (
                 <a
                   href={proj.link}
                   className="text-blue-600 underline"
                   target="_blank"
+                  rel="noreferrer"
                 >
                   {proj.link}
                 </a>

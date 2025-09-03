@@ -9,6 +9,8 @@ export const err = <E>(error: E): Result<never, E> => ({
 });
 
 export enum AppError {
-  Unauthenicated,
-  UserAlreadyExists,
+  Unauthenicated = "Unauthenicated",
+  Unauthorized = "Unauthorized",
+  UserAlreadyExists = "UserAlreadyExists",
+  NotFound = "NotFound",
 }
