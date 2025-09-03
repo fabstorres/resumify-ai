@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
-import { AppError } from "@/lib/types/common";
+import { Id } from "@/convex/_generated/dataModel";
 import { Education, Experience, Project, ResumeData } from "@/lib/types/resume";
 import { Label } from "@radix-ui/react-label";
 import { useQuery } from "convex/react";
@@ -22,6 +22,7 @@ import {
   EyeIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const defaultResumeData: ResumeData = {
@@ -68,8 +69,11 @@ const defaultResumeData: ResumeData = {
 };
 
 export default function ResumeBuilderPage() {
+  const { resumeId } = useParams<{ resumeId: string }>();
   const [resumeData, setResumeData] = useState<ResumeData>(defaultResumeData);
-  const messageResult = useQuery(api.resumes.getMasterResume);
+  const messageResult = useQuery(api.resumes.getResume, {
+    resumeId: resumeId as Id<"resumes">,
+  });
   useEffect(() => {
     if (messageResult && messageResult.ok) {
       setResumeData(messageResult.value);

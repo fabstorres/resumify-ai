@@ -18,45 +18,13 @@ import {
   TrashIcon,
   EyeIcon,
 } from "lucide-react";
-
-// Mock data for resumes
-const mockResumes = [
-  {
-    id: 1,
-    title: "Software Engineer Resume",
-    status: "active" as const,
-    lastModified: "2024-01-15",
-    created: "2024-01-10",
-    jobsApplied: 12,
-  },
-  {
-    id: 2,
-    title: "Frontend Developer Resume",
-    status: "draft" as const,
-    lastModified: "2024-01-12",
-    created: "2024-01-08",
-    jobsApplied: 0,
-  },
-  {
-    id: 3,
-    title: "Full Stack Developer Resume",
-    status: "archived" as const,
-    lastModified: "2023-12-20",
-    created: "2023-12-15",
-    jobsApplied: 8,
-  },
-  {
-    id: 4,
-    title: "React Developer Resume",
-    status: "active" as const,
-    lastModified: "2024-01-14",
-    created: "2024-01-05",
-    jobsApplied: 5,
-  },
-];
+import { api } from "@/convex/_generated/api";
+import { useQuery } from "convex/react";
+import Link from "next/link";
+import { createResume } from "../server/actions";
 
 export default function ResumesPage() {
-  const [resumes] = useState(mockResumes);
+  const resumesResult = useQuery(api.resumes.getResumes);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -69,11 +37,6 @@ export default function ResumesPage() {
       default:
         return "bg-gray-100 text-gray-800";
     }
-  };
-
-  const handleEditResume = (resumeId: number) => {
-    // Navigate to builder with resume ID
-    window.location.href = `/builder?resumeId=${resumeId}`;
   };
 
   return (
@@ -107,11 +70,13 @@ export default function ResumesPage() {
               it.
             </p>
           </div>
-          <Button size="lg" asChild>
-            <a href="/builder">
-              <PlusIcon className="size-4 mr-2" />
-              New Resume
-            </a>
+          <Button
+            size="lg"
+            onClick={() => createResume()}
+            className="hover:cursor-pointer"
+          >
+            <PlusIcon className="size-4 mr-2" />
+            New Resume
           </Button>
         </div>
 
@@ -137,79 +102,85 @@ export default function ResumesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {resumes.map((resume) => (
-                <TableRow
-                  key={resume.id}
-                  className="hover:bg-muted/30 border-b border-border/50"
-                >
-                  <TableCell className="font-medium px-6 py-4">
-                    {resume.title}
-                  </TableCell>
-                  <TableCell className="px-6 py-4">
-                    <Badge
-                      className={getStatusColor(resume.status)}
-                      variant="secondary"
-                    >
-                      {resume.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground px-6 py-4">
-                    {resume.lastModified}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground px-6 py-4">
-                    {resume.jobsApplied}
-                  </TableCell>
-                  <TableCell className="text-right px-6 py-4">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        size="sm"
-                        onClick={() => handleEditResume(resume.id)}
-                        className="px-3"
+              {resumesResult?.ok &&
+                resumesResult?.value.map((resume) => (
+                  <TableRow
+                    key={resume._id}
+                    className="hover:bg-muted/30 border-b border-border/50"
+                  >
+                    <TableCell className="font-medium px-6 py-4">
+                      {resume.title}
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <Badge
+                        className={getStatusColor("active")}
+                        variant="secondary"
                       >
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="px-2 hover:bg-primary/10"
-                      >
-                        <EyeIcon className="size-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="px-2 hover:bg-primary/10"
-                      >
-                        <DownloadIcon className="size-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="px-2 hover:bg-red-100 hover:text-red-600"
-                      >
-                        <TrashIcon className="size-3" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                        {/* TODO: Add status */}
+                        Active
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground px-6 py-4">
+                      {resume.updatedAt}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground px-6 py-4">
+                      0
+                    </TableCell>
+                    <TableCell className="text-right px-6 py-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button size="sm" asChild className="px-3">
+                          <Link href={`/builder/${resume._id}`}>Edit</Link>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="px-2 hover:bg-primary/10"
+                        >
+                          <Link href={`/builder/${resume._id}`}>
+                            <EyeIcon className="size-3" />
+                          </Link>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="px-2 hover:bg-primary/10"
+                        >
+                          <Link href={`api/exporter/resume/${resume._id}`}>
+                            <DownloadIcon className="size-3" />
+                          </Link>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="px-2 hover:bg-red-100 hover:text-red-600"
+                        >
+                          <Link href={`/builder/${resume._id}`}>
+                            <TrashIcon className="size-3" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         </div>
 
         {/* Empty State */}
-        {resumes.length === 0 && (
+        {resumesResult?.ok && resumesResult?.value.length === 0 && (
           <div className="text-center py-12">
             <FileTextIcon className="size-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">No resumes yet</h3>
             <p className="text-muted-foreground mb-6">
               Create your first resume to get started with your job search.
             </p>
-            <Button size="lg" asChild>
-              <a href="/builder">
-                <PlusIcon className="size-4 mr-2" />
-                Create Your First Resume
-              </a>
+            <Button
+              size="lg"
+              onClick={() => createResume()}
+              className="hover:cursor-pointer"
+            >
+              <PlusIcon className="size-4 mr-2" />
+              Create Your First Resume
             </Button>
           </div>
         )}

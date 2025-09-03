@@ -1,6 +1,49 @@
 import { AppError, err, ok } from "@/lib/types/common";
-import { query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+
+export const personalInfoValidator = v.object({
+  name: v.string(),
+  email: v.string(),
+  phone: v.string(),
+  location: v.string(),
+  linkedin: v.string(),
+  github: v.string(),
+});
+
+export const experienceValidator = v.object({
+  title: v.string(),
+  company: v.string(),
+  location: v.string(),
+  startDate: v.string(),
+  endDate: v.string(),
+  description: v.string(),
+});
+
+export const educationValidator = v.object({
+  degree: v.string(),
+  school: v.string(),
+  location: v.string(),
+  graduationDate: v.string(),
+  gpa: v.string(),
+});
+
+export const projectValidator = v.object({
+  name: v.string(),
+  description: v.string(),
+  technologies: v.string(),
+  link: v.optional(v.string()),
+});
+
+export const resumeArgsValidator = {
+  title: v.string(),
+  personalInfo: personalInfoValidator,
+  summary: v.string(),
+  experience: v.array(experienceValidator),
+  education: v.array(educationValidator),
+  skills: v.array(v.string()),
+  projects: v.array(projectValidator),
+};
 
 export const getMasterResume = query({
   args: {},
@@ -46,5 +89,56 @@ export const getResume = query({
     if (resume.userId !== user._id) return err(AppError.Unauthorized);
 
     return ok(resume);
+  },
+});
+
+export const getResumes = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return err(AppError.Unauthenicated);
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!user) return err(AppError.Unauthenicated);
+
+    const resumes = await ctx.db
+      .query("resumes")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    return ok(resumes.filter((resume) => resume._id !== user.masterResume));
+  },
+});
+
+export const createResume = mutation({
+  args: resumeArgsValidator,
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return err(AppError.Unauthenicated);
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!user) return err(AppError.Unauthenicated);
+
+    const resumeId = await ctx.db.insert("resumes", {
+      userId: user._id,
+      title: args.title,
+      personalInfo: args.personalInfo,
+      summary: args.summary,
+      experience: args.experience,
+      education: args.education,
+      skills: args.skills,
+      projects: args.projects,
+      updatedAt: Date.now(),
+    });
+
+    return ok(resumeId);
   },
 });
