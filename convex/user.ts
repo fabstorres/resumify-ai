@@ -1,47 +1,9 @@
 import { mutation } from "@/convex/_generated/server";
 import { AppError, err, ok } from "@/lib/types/common";
-import { v } from "convex/values";
+import { resumeArgsValidator } from "./resumes";
 
 export const onboard = mutation({
-  args: {
-    personalInfo: v.object({
-      name: v.string(),
-      email: v.string(),
-      phone: v.string(),
-      location: v.string(),
-      linkedin: v.string(),
-      github: v.string(),
-    }),
-    summary: v.string(),
-    experience: v.array(
-      v.object({
-        title: v.string(),
-        company: v.string(),
-        location: v.string(),
-        startDate: v.string(),
-        endDate: v.string(),
-        description: v.string(),
-      })
-    ),
-    education: v.array(
-      v.object({
-        degree: v.string(),
-        school: v.string(),
-        location: v.string(),
-        graduationDate: v.string(),
-        gpa: v.optional(v.string()),
-      })
-    ),
-    skills: v.array(v.string()),
-    projects: v.array(
-      v.object({
-        name: v.string(),
-        description: v.string(),
-        technologies: v.string(),
-        link: v.optional(v.string()),
-      })
-    ),
-  },
+  args: resumeArgsValidator,
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return err(AppError.Unauthenicated);
