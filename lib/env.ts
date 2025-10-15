@@ -6,6 +6,7 @@ const createEnv = () => {
     CONVEX_DEPLOYMENT: z.string().optional(),
     CLERK_SECRET_KEY: z.string(),
     CLERK_JWT_ISSUER_DOMAIN: z.url(),
+    OPENAI_SECRET_KEY: z.string(),
   });
   const serverEnv = serverSchema.parse(process.env);
 

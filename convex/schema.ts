@@ -58,4 +58,21 @@ export default defineSchema({
 
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
+  suggestions: defineTable({
+    resumeId: v.id("resumes"),
+
+    jobDescription: v.string(), // the latest job description used
+
+    updatedAt: v.number(),
+
+    recommendations: v.array(
+      v.object({
+        type: v.string(), // "summary" | "experience" | "education" | "skills" | "projects"
+        current: v.string(),
+        suggested: v.string(),
+        metadata: v.optional(v.any()), // flexible extra info (company, dates, etc.)
+        status: v.string(), // "pending" | "accepted" | "rejected"
+      })
+    ),
+  }).index("by_resume", ["resumeId"]),
 });

@@ -13,4 +13,5 @@ export enum AppError {
   Unauthorized = "Unauthorized",
   UserAlreadyExists = "UserAlreadyExists",
   NotFound = "NotFound",
+  Misc = "Misc",
 }

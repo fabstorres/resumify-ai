@@ -3,7 +3,13 @@ import { PDFTemplate } from "@/components/resume/pdf-template";
 import { ResumeTemplate } from "@/components/resume/template";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +27,9 @@ import {
   PlusIcon,
   TrashIcon,
   EyeIcon,
+  SparklesIcon,
+  CheckIcon,
+  XIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -76,12 +85,17 @@ export default function ResumeBuilderPage() {
   const { resumeId } = useParams<{ resumeId: string }>();
 
   const updateResume = useMutation(api.resumes.updateResume);
+  const generateSuggestion = useMutation(api.suggestions.generateSuggestion);
   const messageResult = useQuery(api.resumes.getResume, {
+    resumeId: resumeId as Id<"resumes">,
+  });
+  const suggestionResult = useQuery(api.suggestions.getSuggestion, {
     resumeId: resumeId as Id<"resumes">,
   });
   const [resumeData, setResumeData] = useState<ResumeData>(defaultResumeData);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
-
+  const [jobInput, setJobInput] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   // Debounced save function
   const debouncedSave = useDebouncedCallback(
     (data: ResumeData) => {
@@ -246,6 +260,22 @@ export default function ResumeBuilderPage() {
     }));
   };
 
+  const handleAiOptimization = async () => {
+    if (!jobInput.trim()) return;
+
+    setIsAnalyzing(true);
+    try {
+      await generateSuggestion({
+        resumeId: resumeId as Id<"resumes">,
+        jobDesc: jobInput.trim(),
+      });
+    } catch (error) {
+      console.error("Failed to generate suggestions:", error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   if (messageResult === undefined) {
     return <div>Loading...</div>;
   }
@@ -295,6 +325,123 @@ export default function ResumeBuilderPage() {
       </header>
       <div className="grid lg:grid-cols-2 gap-6 p-4">
         <div className="space-y-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <SparklesIcon className="size-4 text-primary" />
+                AI Resume Optimization
+              </CardTitle>
+              <CardDescription className="text-sm">
+                Enter a job description to get AI-powered optimization
+                suggestions for your resume
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="job-description" className="text-sm">
+                    Job Description
+                  </Label>
+                  <Textarea
+                    id="job-description"
+                    placeholder="Paste the complete job description here..."
+                    value={jobInput}
+                    onChange={(e) => setJobInput(e.target.value)}
+                    rows={4}
+                    className="resize-none text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={handleAiOptimization}
+                  disabled={!jobInput.trim() || isAnalyzing}
+                  className="h-9"
+                >
+                  <SparklesIcon className="size-4 mr-2" />
+                  {isAnalyzing ? "Analyzing..." : "Analyze & Optimize Resume"}
+                </Button>
+                {suggestionResult &&
+                  suggestionResult.ok &&
+                  suggestionResult.value.recommendations.length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {suggestionResult.value.recommendations.length}{" "}
+                      suggestions pending
+                    </Badge>
+                  )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {suggestionResult &&
+            suggestionResult.ok &&
+            suggestionResult.value.recommendations.length > 0 && (
+              <Card className="mb-4 border-primary/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <SparklesIcon className="size-4 text-primary" />
+                    AI Optimization Suggestions
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    Review and apply these improvements to better match the job
+                    requirements
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-3">
+                  {suggestionResult.value.recommendations.map(
+                    (suggestion, index) => (
+                      <div
+                        key={index}
+                        className="border rounded-lg p-3 space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <Badge variant="outline" className="text-xs">
+                            {suggestion.type}
+                          </Badge>
+                          <div className="flex gap-1.5">
+                            <Button
+                              size="sm"
+                              className="h-7 px-2 text-xs" /*onClick={() => acceptSuggestion(index)}*/
+                            >
+                              <CheckIcon className="size-3 mr-1" />
+                              Accept
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-xs bg-transparent"
+                              // onClick={() => rejectSuggestion(index)}
+                            >
+                              <XIcon className="size-3 mr-1" />
+                              Reject
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <div>
+                            <Label className="text-xs text-muted-foreground">
+                              Current:
+                            </Label>
+                            <p className="text-xs bg-muted/50 p-2 rounded">
+                              {suggestion.current}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">
+                              Suggested:
+                            </Label>
+                            <p className="text-xs bg-primary/5 p-2 rounded border border-primary/20">
+                              {suggestion.suggested}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  )}
+                </CardContent>
+              </Card>
+            )}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
