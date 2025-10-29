@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 
 const defaultResumeData: ResumeData = {
@@ -93,14 +93,16 @@ export default function ResumeBuilderPage() {
     resumeId: resumeId as Id<"resumes">,
   });
   const [resumeData, setResumeData] = useState<ResumeData>(defaultResumeData);
+  const [originalData, setOriginalData] = useState<ResumeData | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [jobInput, setJobInput] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  // Debounced save function
-  const debouncedSave = useDebouncedCallback(
-    (data: ResumeData) => {
+
+  // Save function
+  const saveResume = useCallback(
+    async (data: ResumeData) => {
       // Don't save if data hasn't loaded from the server yet
-      if (!isDataLoaded) return;
+      if (!isDataLoaded || !originalData) return;
 
       // Don't save if the data is still the default data
       if (JSON.stringify(data) === JSON.stringify(defaultResumeData)) return;
@@ -108,40 +110,55 @@ export default function ResumeBuilderPage() {
       // Don't save if _id is still "temp"
       if (data._id === "temp") return;
 
+      // Don't save if data hasn't actually changed from the original
+      if (JSON.stringify(data) === JSON.stringify(originalData)) return;
+
       console.log("Saving resume:", data);
 
-      updateResume({
-        resumeId: resumeId as Id<"resumes">,
-        data: {
-          title: data.title,
-          summary: data.summary,
-          skills: data.skills,
-          personalInfo: data.personalInfo,
-          projects: data.projects,
-          experience: data.experience,
-          education: data.education.map((edu) => ({
-            ...edu,
-            gpa: edu.gpa ?? "",
-          })),
-        },
-      });
+      try {
+        await updateResume({
+          resumeId: resumeId as Id<"resumes">,
+          data: {
+            title: data.title,
+            summary: data.summary,
+            skills: data.skills,
+            personalInfo: data.personalInfo,
+            projects: data.projects,
+            experience: data.experience,
+            education: data.education.map((edu) => ({
+              ...edu,
+              gpa: edu.gpa ?? "",
+            })),
+          },
+        });
+
+        // Update original data after successful save
+        setOriginalData(data);
+      } catch (error) {
+        console.error("Failed to save resume:", error);
+      }
     },
-    1000 // 1 second delay
+    [isDataLoaded, originalData, updateResume, resumeId]
   );
+
+  // Debounced save function
+  const debouncedSave = useDebouncedCallback(saveResume, 1000);
 
   useEffect(() => {
     if (messageResult && messageResult.ok) {
-      setResumeData(messageResult.value);
+      const serverData = messageResult.value;
+      setResumeData(serverData);
+      setOriginalData(serverData);
       setIsDataLoaded(true);
     }
   }, [messageResult]);
 
-  // Auto-save when resumeData changes
+  // Auto-save when resumeData changes (but only if it's different from original)
   useEffect(() => {
-    if (isDataLoaded) {
+    if (isDataLoaded && originalData) {
       debouncedSave(resumeData);
     }
-  }, [resumeData, debouncedSave, isDataLoaded]);
+  }, [resumeData, debouncedSave, isDataLoaded, originalData]);
 
   const addExperience = () => {
     const newExp = {

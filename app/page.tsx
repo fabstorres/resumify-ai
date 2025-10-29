@@ -65,33 +65,28 @@ export default function HomePage() {
           </nav>
           <div className="flex items-center gap-3">
             <SignedIn>
-              <SignOutButton>
-                <Button size="sm" className="hover:cursor-pointer">
-                  <p>Sign out</p>
-                </Button>
-              </SignOutButton>
+              <Button asChild size="sm" className="hover:cursor-pointer">
+                <SignOutButton />
+              </Button>
             </SignedIn>
             <SignedOut>
-              <SignInButton
-                forceRedirectUrl={"/builder"}
-                signUpForceRedirectUrl={"/onboarding"}
+              <Button
+                asChild
+                size="sm"
+                variant={"ghost"}
+                className="hover:cursor-pointer"
               >
-                <Button
-                  size="sm"
-                  variant={"ghost"}
-                  className="hover:cursor-pointer"
-                >
-                  <p>Sign in</p>
-                </Button>
-              </SignInButton>
-              <SignUpButton
-                forceRedirectUrl={"/onboarding"}
-                signInForceRedirectUrl={"/builder"}
-              >
-                <Button size="sm" className="hover:cursor-pointer">
-                  <p>Get Started</p>
-                </Button>
-              </SignUpButton>
+                <SignInButton
+                  forceRedirectUrl={"/builder"}
+                  signUpForceRedirectUrl={"/onboarding"}
+                />
+              </Button>
+              <Button asChild size="sm" className="hover:cursor-pointer">
+                <SignUpButton
+                  forceRedirectUrl={"/onboarding"}
+                  signInForceRedirectUrl={"/builder"}
+                />
+              </Button>
             </SignedOut>
           </div>
         </div>
