@@ -340,3 +340,145 @@ export const updateSuggestion = mutation({
     return ok(true);
   },
 });
+
+// Update a specific recommendation status
+export const updateRecommendationStatus = mutation({
+  args: {
+    suggestionId: v.id("suggestions"),
+    recommendationIndex: v.number(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("rejected")
+    ),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return err(AppError.Unauthenicated);
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!user) return err(AppError.Unauthenicated);
+
+    const suggestion = await ctx.db.get(args.suggestionId);
+    if (!suggestion) return err(AppError.NotFound);
+
+    const recommendations = [...suggestion.recommendations];
+    if (args.recommendationIndex >= recommendations.length) {
+      return err(AppError.NotFound);
+    }
+
+    recommendations[args.recommendationIndex] = {
+      ...recommendations[args.recommendationIndex],
+      status: args.status,
+    };
+
+    await ctx.db.patch(args.suggestionId, {
+      recommendations,
+      updatedAt: Date.now(),
+    });
+
+    return ok(true);
+  },
+});
+
+// Apply a suggestion to the resume
+export const applySuggestion = mutation({
+  args: {
+    resumeId: v.id("resumes"),
+    suggestionId: v.id("suggestions"),
+    recommendationIndex: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return err(AppError.Unauthenicated);
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+
+    if (!user) return err(AppError.Unauthenicated);
+
+    const suggestion = await ctx.db.get(args.suggestionId);
+    if (!suggestion) return err(AppError.NotFound);
+
+    const recommendation = suggestion.recommendations[args.recommendationIndex];
+    if (!recommendation) return err(AppError.NotFound);
+
+    const resume = await ctx.db.get(args.resumeId);
+    if (!resume) return err(AppError.NotFound);
+
+    // Apply the suggestion based on the type
+    let updatedResume = { ...resume };
+
+    switch (recommendation.type) {
+      case "summary":
+        updatedResume.summary = recommendation.suggested;
+        break;
+      case "experience":
+        // For experience, we need to find the matching experience entry
+        // This is a simplified implementation - you might want to make it more sophisticated
+        if (updatedResume.experience && updatedResume.experience.length > 0) {
+          updatedResume.experience[0] = {
+            ...updatedResume.experience[0],
+            description: recommendation.suggested,
+          };
+        }
+        break;
+      case "education":
+        // Similar to experience
+        if (updatedResume.education && updatedResume.education.length > 0) {
+          updatedResume.education[0] = {
+            ...updatedResume.education[0],
+            degree: recommendation.suggested,
+          };
+        }
+        break;
+      case "skills":
+        // For skills, we might want to add the suggested skill
+        if (
+          recommendation.suggested &&
+          !updatedResume.skills.includes(recommendation.suggested)
+        ) {
+          updatedResume.skills = [
+            ...updatedResume.skills,
+            recommendation.suggested,
+          ];
+        }
+        break;
+      case "projects":
+        // Similar to experience
+        if (updatedResume.projects && updatedResume.projects.length > 0) {
+          updatedResume.projects[0] = {
+            ...updatedResume.projects[0],
+            description: recommendation.suggested,
+          };
+        }
+        break;
+    }
+
+    // Update the resume
+    await ctx.db.patch(args.resumeId, {
+      ...updatedResume,
+      updatedAt: Date.now(),
+    });
+
+    // Mark the recommendation as accepted
+    const recommendations = [...suggestion.recommendations];
+    recommendations[args.recommendationIndex] = {
+      ...recommendations[args.recommendationIndex],
+      status: "accepted",
+    };
+
+    await ctx.db.patch(args.suggestionId, {
+      recommendations,
+      updatedAt: Date.now(),
+    });
+
+    return ok(true);
+  },
+});

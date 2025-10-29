@@ -30,6 +30,7 @@ import {
   SparklesIcon,
   CheckIcon,
   XIcon,
+  XCircleIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -86,6 +87,10 @@ export default function ResumeBuilderPage() {
 
   const updateResume = useMutation(api.resumes.updateResume);
   const generateSuggestion = useMutation(api.suggestions.generateSuggestion);
+  const updateRecommendationStatus = useMutation(
+    api.suggestions.updateRecommendationStatus
+  );
+  const applySuggestion = useMutation(api.suggestions.applySuggestion);
   const messageResult = useQuery(api.resumes.getResume, {
     resumeId: resumeId as Id<"resumes">,
   });
@@ -322,6 +327,60 @@ export default function ResumeBuilderPage() {
     }
   };
 
+  const handleAcceptSuggestion = async (index: number) => {
+    if (!suggestionResult?.ok) return;
+
+    try {
+      // Apply the suggestion to the resume
+      await applySuggestion({
+        resumeId: resumeId as Id<"resumes">,
+        suggestionId: suggestionResult.value._id,
+        recommendationIndex: index,
+      });
+    } catch (error) {
+      console.error("Failed to apply suggestion:", error);
+    }
+  };
+
+  const handleRejectSuggestion = async (index: number) => {
+    if (!suggestionResult?.ok) return;
+
+    try {
+      const currentStatus =
+        suggestionResult.value.recommendations[index].status;
+      const newStatus = currentStatus === "accepted" ? "rejected" : "rejected";
+
+      await updateRecommendationStatus({
+        suggestionId: suggestionResult.value._id,
+        recommendationIndex: index,
+        status: newStatus,
+      });
+    } catch (error) {
+      console.error("Failed to reject suggestion:", error);
+    }
+  };
+
+  const handleClearSuggestions = async () => {
+    if (!suggestionResult?.ok) return;
+
+    try {
+      // Mark all pending suggestions as rejected
+      const pendingIndices = suggestionResult.value.recommendations
+        .map((rec, index) => (rec.status === "pending" ? index : null))
+        .filter((index) => index !== null);
+
+      for (const index of pendingIndices) {
+        await updateRecommendationStatus({
+          suggestionId: suggestionResult.value._id,
+          recommendationIndex: index!,
+          status: "rejected",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to clear suggestions:", error);
+    }
+  };
+
   if (messageResult === undefined) {
     return <div>Loading...</div>;
   }
@@ -414,9 +473,15 @@ export default function ResumeBuilderPage() {
                 </Button>
                 {suggestionResult &&
                   suggestionResult.ok &&
-                  suggestionResult.value.recommendations.length > 0 && (
+                  suggestionResult.value.recommendations.filter(
+                    (rec) => rec.status === "pending"
+                  ).length > 0 && (
                     <Badge variant="secondary" className="text-xs">
-                      {suggestionResult.value.recommendations.length}{" "}
+                      {
+                        suggestionResult.value.recommendations.filter(
+                          (rec) => rec.status === "pending"
+                        ).length
+                      }{" "}
                       suggestions pending
                     </Badge>
                   )}
@@ -426,46 +491,123 @@ export default function ResumeBuilderPage() {
 
           {suggestionResult &&
             suggestionResult.ok &&
-            suggestionResult.value.recommendations.length > 0 && (
+            suggestionResult.value.recommendations.filter(
+              (rec) => rec.status !== "rejected"
+            ).length > 0 && (
               <Card className="mb-4 border-primary/20">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <SparklesIcon className="size-4 text-primary" />
-                    AI Optimization Suggestions
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <SparklesIcon className="size-4 text-primary" />
+                        AI Optimization Suggestions
+                      </CardTitle>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleClearSuggestions}
+                      className="h-7 px-2 text-xs"
+                    >
+                      <XCircleIcon className="size-3 mr-1" />
+                      Clear All
+                    </Button>
+                  </div>
                   <CardDescription className="text-sm">
                     Review and apply these improvements to better match the job
                     requirements
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-3">
-                  {suggestionResult.value.recommendations.map(
-                    (suggestion, index) => (
+                  {suggestionResult.value.recommendations
+                    .map((suggestion, originalIndex) => ({
+                      suggestion,
+                      originalIndex,
+                    }))
+                    .filter(
+                      ({ suggestion }) => suggestion.status !== "rejected"
+                    )
+                    .map(({ suggestion, originalIndex }) => (
                       <div
-                        key={index}
-                        className="border rounded-lg p-3 space-y-2"
+                        key={originalIndex}
+                        className={`border rounded-lg p-3 space-y-2 ${
+                          suggestion.status === "accepted"
+                            ? "border-green-200 bg-green-50"
+                            : suggestion.status === "rejected"
+                            ? "border-red-200 bg-red-50"
+                            : "border-gray-200"
+                        }`}
                       >
                         <div className="flex items-center justify-between">
-                          <Badge variant="outline" className="text-xs">
-                            {suggestion.type}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {suggestion.type}
+                            </Badge>
+                            {suggestion.status === "accepted" && (
+                              <Badge
+                                variant="default"
+                                className="text-xs bg-green-600"
+                              >
+                                Accepted
+                              </Badge>
+                            )}
+                            {suggestion.status === "rejected" && (
+                              <Badge variant="destructive" className="text-xs">
+                                Rejected
+                              </Badge>
+                            )}
+                          </div>
                           <div className="flex gap-1.5">
-                            <Button
-                              size="sm"
-                              className="h-7 px-2 text-xs" /*onClick={() => acceptSuggestion(index)}*/
-                            >
-                              <CheckIcon className="size-3 mr-1" />
-                              Accept
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 px-2 text-xs bg-transparent"
-                              // onClick={() => rejectSuggestion(index)}
-                            >
-                              <XIcon className="size-3 mr-1" />
-                              Reject
-                            </Button>
+                            {suggestion.status === "pending" && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  className="h-7 px-2 text-xs"
+                                  onClick={() =>
+                                    handleAcceptSuggestion(originalIndex)
+                                  }
+                                >
+                                  <CheckIcon className="size-3 mr-1" />
+                                  Accept
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2 text-xs bg-transparent"
+                                  onClick={() =>
+                                    handleRejectSuggestion(originalIndex)
+                                  }
+                                >
+                                  <XIcon className="size-3 mr-1" />
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+                            {suggestion.status === "accepted" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2 text-xs bg-transparent"
+                                onClick={() =>
+                                  handleRejectSuggestion(originalIndex)
+                                }
+                              >
+                                <XIcon className="size-3 mr-1" />
+                                Undo
+                              </Button>
+                            )}
+                            {suggestion.status === "rejected" && (
+                              <Button
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                onClick={() =>
+                                  handleAcceptSuggestion(originalIndex)
+                                }
+                              >
+                                <CheckIcon className="size-3 mr-1" />
+                                Accept
+                              </Button>
+                            )}
                           </div>
                         </div>
                         <div className="space-y-1.5">
@@ -487,8 +629,7 @@ export default function ResumeBuilderPage() {
                           </div>
                         </div>
                       </div>
-                    )
-                  )}
+                    ))}
                 </CardContent>
               </Card>
             )}
