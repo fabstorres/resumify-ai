@@ -97,6 +97,7 @@ export default function ResumeBuilderPage() {
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [jobInput, setJobInput] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiProcessingStarted, setAiProcessingStarted] = useState(false);
 
   // Save function
   const saveResume = useCallback(
@@ -159,6 +160,32 @@ export default function ResumeBuilderPage() {
       debouncedSave(resumeData);
     }
   }, [resumeData, debouncedSave, isDataLoaded, originalData]);
+
+  // Stop loading when suggestions appear
+  useEffect(() => {
+    if (
+      aiProcessingStarted &&
+      suggestionResult &&
+      suggestionResult.ok &&
+      suggestionResult.value.recommendations.length > 0
+    ) {
+      setIsAnalyzing(false);
+      setAiProcessingStarted(false);
+    }
+  }, [aiProcessingStarted, suggestionResult]);
+
+  // Timeout to stop loading after 60 seconds in case something goes wrong
+  useEffect(() => {
+    if (aiProcessingStarted) {
+      const timeout = setTimeout(() => {
+        setIsAnalyzing(false);
+        setAiProcessingStarted(false);
+        console.warn("AI processing timed out after 60 seconds");
+      }, 60000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [aiProcessingStarted]);
 
   const addExperience = () => {
     const newExp = {
@@ -281,15 +308,17 @@ export default function ResumeBuilderPage() {
     if (!jobInput.trim()) return;
 
     setIsAnalyzing(true);
+    setAiProcessingStarted(true);
     try {
       await generateSuggestion({
         resumeId: resumeId as Id<"resumes">,
         jobDesc: jobInput.trim(),
       });
+      // Don't set isAnalyzing to false here - let it continue until suggestions appear
     } catch (error) {
       console.error("Failed to generate suggestions:", error);
-    } finally {
       setIsAnalyzing(false);
+      setAiProcessingStarted(false);
     }
   };
 
@@ -377,7 +406,11 @@ export default function ResumeBuilderPage() {
                   className="h-9"
                 >
                   <SparklesIcon className="size-4 mr-2" />
-                  {isAnalyzing ? "Analyzing..." : "Analyze & Optimize Resume"}
+                  {isAnalyzing
+                    ? aiProcessingStarted
+                      ? "Generating AI suggestions..."
+                      : "Analyzing..."
+                    : "Analyze & Optimize Resume"}
                 </Button>
                 {suggestionResult &&
                   suggestionResult.ok &&
